@@ -9,7 +9,11 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
 
+import java.io.BufferedInputStream;
+import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -70,5 +74,23 @@ public class MainActivity extends ActionBarActivity {
         // Save a file: path for use with ACTION_VIEW intents
         mCurrentPhotoPath = "file:" + image.getAbsolutePath();
         return image;
+    }
+
+    private File converttobinary(File input) {
+//        File input = new File("path to input");
+        File output = new File("path to output");
+        try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(input));
+             BufferedWriter bw = new BufferedWriter(new FileWriter(output))) {
+            int read;
+            while ((read = bis.read()) != -1) {
+                String text = Integer.toString(read, 2);
+                while (text.length() < 8) {
+                    text = "0" + text;
+                }
+                bw.write(text);
+            }
+        } catch (IOException e) {
+            System.err.println(e);
+        }
     }
 }
