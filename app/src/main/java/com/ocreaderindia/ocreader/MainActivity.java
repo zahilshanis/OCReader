@@ -51,8 +51,10 @@ public class MainActivity extends ActionBarActivity {
             }
             // Continue only if the File was successfully created
             if (photoFile != null) {
+                File photoBinary = null;
+                photoBinary = convertToBinary(photoFile);
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT,
-                        Uri.fromFile(photoFile));
+                        Uri.fromFile(photoBinary));
                 startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
             }
         }
@@ -76,7 +78,7 @@ public class MainActivity extends ActionBarActivity {
         return image;
     }
 
-    private File converttobinary(File input) {
+    private File convertToBinary(File input) {
 //        File input = new File("path to input");
         File output = new File("path to output");
         try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(input));
