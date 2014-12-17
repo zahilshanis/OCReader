@@ -8,12 +8,9 @@ import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -47,15 +44,20 @@ public class MainActivity extends ActionBarActivity {
             try {
                 photoFile = createImageFile();
             } catch (IOException ex) {
-                //Do-This
-            }
+                //Dothis
+                       }
             // Continue only if the File was successfully created
             if (photoFile != null) {
-                File photoBinary = null;
-                photoBinary = convertToBinary(photoFile);
+                //File photoBinary = null;
+                //photoBinary = convertToBinary(photoFile);
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT,
-                        Uri.fromFile(photoBinary));
+                        Uri.fromFile(photoFile));
                 startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
+
+                UploadToServer uploader = new UploadToServer();
+                uploader.uploadFile(mCurrentPhotoPath);
+
+
             }
         }
     }
@@ -78,21 +80,4 @@ public class MainActivity extends ActionBarActivity {
         return image;
     }
 
-    private File convertToBinary(File input) {
-//        File input = new File("path to input");
-        File output = new File("path to output");
-        try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(input));
-             BufferedWriter bw = new BufferedWriter(new FileWriter(output))) {
-            int read;
-            while ((read = bis.read()) != -1) {
-                String text = Integer.toString(read, 2);
-                while (text.length() < 8) {
-                    text = "0" + text;
-                }
-                bw.write(text);
-            }
-        } catch (IOException e) {
-            System.err.println(e);
-        }
-    }
 }
