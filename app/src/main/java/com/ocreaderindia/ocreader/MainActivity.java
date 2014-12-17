@@ -6,6 +6,7 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
@@ -28,7 +29,8 @@ public class MainActivity extends ActionBarActivity {
         final Button button = (Button) findViewById(R.id.button);
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                dispatchTakePictureIntent();
+                Log.i("up","created");
+                new UploadToServer().execute(mCurrentPhotoPath,imageFileName);
             }
         });
     }
@@ -53,20 +55,20 @@ public class MainActivity extends ActionBarActivity {
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT,
                         Uri.fromFile(photoFile));
                 startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
-
-                UploadToServer uploader = new UploadToServer();
-                uploader.uploadFile(mCurrentPhotoPath);
-
-
+                Log.i("pic","taken!");
             }
         }
     }
+
+
+
     String mCurrentPhotoPath;
+    String imageFileName;
 
     private File createImageFile() throws IOException {
         // Create an image file name
         String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
-        String imageFileName = "JPEG_" + timeStamp + "_";
+        imageFileName = "JPEG_" + timeStamp + "_";
         File storageDir = Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_PICTURES);
         File image = File.createTempFile(
@@ -77,6 +79,10 @@ public class MainActivity extends ActionBarActivity {
 
         // Save a file: path for use with ACTION_VIEW intents
         mCurrentPhotoPath = "file:" + image.getAbsolutePath();
+        imageFileName = imageFileName + ".jpg";
+
+        Log.i("path", mCurrentPhotoPath);
+        Log.i("fname",imageFileName);
         return image;
     }
 
