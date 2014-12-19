@@ -6,35 +6,25 @@ import java.io.FileInputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import android.app.Activity;
-import android.app.ProgressDialog;
 import android.os.AsyncTask;
 import android.util.Log;
-import android.widget.TextView;
-import android.widget.Toast;
 
 
-public class UploadToServer extends AsyncTask <String, String, String> {
+public class UploadToServer extends AsyncTask <File, String, String> {
 
-    TextView messageText;
     int serverResponseCode = 0;
-    ProgressDialog dialog = null;
 
-    /**
-     * *******  File Path ************
-     */
-
-    String upLoadServerUri = "http://10.22.13.194";
+    String upLoadServerUri = "http://10.22.29.41/zahil/UploadToServer.php";
 
     @Override
-    protected String doInBackground(String... arg0) {
+    protected String doInBackground(File... arg) {
         //public int doinBackground(String sourceFileUri,String imageFileName) {
 
-        String imageFileName = arg0[0];
-        String sourceFileUri = arg0[1];
-        final String uploadFileName = imageFileName;
-        Log.i("path", sourceFileUri);
-        Log.i("name", imageFileName);
+       // String imageFileName = arg[0];
+        //String sourceFileUri = arg[1];
+        //final String uploadFileName = imageFileName;
+        //Log.i("path", arg[0]);
+       // Log.i("name", imageFileName);
 
         HttpURLConnection conn = null;
         DataOutputStream dos = null;
@@ -44,7 +34,8 @@ public class UploadToServer extends AsyncTask <String, String, String> {
         int bytesRead, bytesAvailable, bufferSize;
         byte[] buffer;
         int maxBufferSize = 1 * 1024 * 1024;
-        File sourceFile = new File(sourceFileUri);
+        File sourceFile = arg[0];
+        String sourceFileUri=sourceFile.getAbsolutePath();
 
         if (!sourceFile.isFile()) {
 
@@ -72,8 +63,9 @@ public class UploadToServer extends AsyncTask <String, String, String> {
                 dos = new DataOutputStream(conn.getOutputStream());
 
                 dos.writeBytes(twoHyphens + boundary + lineEnd);
-                //dos.writeBytes("Content-Disposition: form-data; name= ; filename= " + fileName + lineEnd);
+                //dos.writeBytes("Content-Disposition: form-data; name= ; filename= "" + fileName + lineEnd);
                 dos.writeBytes(("Content-Disposition: form-data; name=\"" + "uploaded_file" + "\"\r\n"));
+                //dos.writeBytes("Content-Disposition: form-data; name=""uploaded_file"" ;  fileName + lineEnd");
                 dos.writeBytes(lineEnd);
 
                 // create a buffer of  maximum size
@@ -117,7 +109,6 @@ public class UploadToServer extends AsyncTask <String, String, String> {
 //                                    Toast.LENGTH_SHORT).show();
 //                        }
 //                    });
-
                     Log.i("code", serverResponseMessage);
                 }
 
@@ -128,7 +119,6 @@ public class UploadToServer extends AsyncTask <String, String, String> {
 
             } catch (MalformedURLException ex) {
 
-                dialog.dismiss();
                 ex.printStackTrace();
 
 //                runOnUiThread(new Runnable() {
@@ -137,12 +127,9 @@ public class UploadToServer extends AsyncTask <String, String, String> {
 //                        Toast.makeText(UploadToServer.this, "MalformedURLException",
 //                                Toast.LENGTH_SHORT).show();
 //                    }
-//                });
-
+//                })
                 Log.e("Upload file to server", "error: " + ex.getMessage(), ex);
             } catch (Exception e) {
-
-                dialog.dismiss();
                 e.printStackTrace();
 
 //                runOnUiThread(new Runnable() {
@@ -155,13 +142,13 @@ public class UploadToServer extends AsyncTask <String, String, String> {
                 Log.e("Upload file to server Exception", "Exception : "
                         + e.getMessage(), e);
             }
-            dialog.dismiss();
             // return serverResponseCode;
 
         } // End else blockdev
-    return "ok";
+     return "ok";
     }
 
+    @Override
     protected void onPostExecute(String result) {
 
         Log.i("post", "okayy");

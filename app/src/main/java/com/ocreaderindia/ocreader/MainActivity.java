@@ -1,6 +1,7 @@
 package com.ocreaderindia.ocreader;
 
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
@@ -9,9 +10,11 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -30,14 +33,15 @@ public class MainActivity extends ActionBarActivity {
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 Log.i("up","created");
-                new UploadToServer().execute(mCurrentPhotoPath,imageFileName);
+                File photoFile = dispatchTakePictureIntent();
+                new UploadToServer().execute(photoFile);
             }
         });
     }
 
     static final int REQUEST_TAKE_PHOTO = 1;
 
-    private void dispatchTakePictureIntent() {
+    public File dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
         // Ensure that there's a camera activity to handle the intent
         if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
@@ -56,11 +60,27 @@ public class MainActivity extends ActionBarActivity {
                         Uri.fromFile(photoFile));
                 startActivityForResult(takePictureIntent, REQUEST_TAKE_PHOTO);
                 Log.i("pic","taken!");
+
+                return photoFile;
+            }
+        }
+        return null;
+    }
+
+    public void onActivityResult(int requestCode, int resultCode, Intent takePictureIntent) {
+        if (requestCode == 1) {
+            Bitmap photo = (Bitmap) takePictureIntent.getExtras().get("data");
+            ImageView test = (ImageView) findViewById(R.id.imageView);
+            test.setImageBitmap(photo);
+
+            try {
+                FileOutputStream out = new FileOutputStream("filename");
+                photo.compress(Bitmap.CompressFormat.JPEG, 90, out);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
-
-
 
     String mCurrentPhotoPath;
     String imageFileName;
