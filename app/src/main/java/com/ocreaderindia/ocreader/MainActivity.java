@@ -34,7 +34,7 @@ public class MainActivity extends ActionBarActivity {
             public void onClick(View v) {
                 Log.i("up","created");
                 File photoFile = dispatchTakePictureIntent();
-                new UploadToServer().execute(photoFile);
+                //new UploadToServer().execute(photoFile);
             }
         });
     }
