@@ -119,13 +119,13 @@ public class MainActivity extends ActionBarActivity {
                 selectedImagePath = getAbsolutePath(data.getData());
                 System.out.println("path" + selectedImagePath);
                 imageView.setImageBitmap(decodeFile(selectedImagePath));
-                new PostDataAsyncTask().execute();
+                new PostDataAsyncTask().execute(selectedImagePath);
 
             } else if (requestCode == CAPTURE_IMAGE) {
                 selectedImagePath = getImagePath();
                 System.out.println("path" + selectedImagePath);
                 imageView.setImageBitmap(decodeFile(selectedImagePath));
-                new PostDataAsyncTask().execute();
+                new PostDataAsyncTask().execute(selectedImagePath);
 
 
             } else {
@@ -197,7 +197,7 @@ public class MainActivity extends ActionBarActivity {
 
                 // post a file
                 else{
-                    postFile();
+                    postFile(strings[0]);
                 }
 
             } catch (NullPointerException e) {
@@ -218,7 +218,7 @@ public class MainActivity extends ActionBarActivity {
     private void postText(){
         try{
             // url where the data will be posted
-            String postReceiverUrl = "http://10.22.29.41/android_upload.php";
+            String postReceiverUrl = "http://192.168.2.11/zahil/android_upload.php";
             Log.v("TAG", "postURL: " + postReceiverUrl);
 
             // HttpClient
@@ -257,15 +257,15 @@ public class MainActivity extends ActionBarActivity {
     }
 
     // will post our text file
-    private void postFile(){
+    private void postFile(String file_location){
         try{
 
             // the file to be posted
-            String textFile = Environment.getExternalStorageDirectory() + "/sample.txt";
+            String textFile = file_location;
             Log.v("TAG", "textFile: " + textFile);
 
             // the URL where the file will be posted
-            String postReceiverUrl = "http://10.22.29.41/android_upload.php";
+            String postReceiverUrl = "http://192.168.2.11/zahil/android_upload.php";
             Log.v("TAG", "postURL: " + postReceiverUrl);
 
             // new HttpClient
