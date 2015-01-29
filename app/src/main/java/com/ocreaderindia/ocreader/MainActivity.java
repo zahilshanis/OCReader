@@ -218,7 +218,7 @@ public class MainActivity extends ActionBarActivity {
     private void postText(){
         try{
             // url where the data will be posted
-            String postReceiverUrl = "http://192.168.2.11/zahil/android_upload.php";
+            String postReceiverUrl = "http://10.22.13.194/upload.php";
             Log.v("TAG", "postURL: " + postReceiverUrl);
 
             // HttpClient
@@ -262,10 +262,10 @@ public class MainActivity extends ActionBarActivity {
 
             // the file to be posted
             String textFile = file_location;
-            Log.v("TAG", "textFile: " + textFile);
+            Log.v("TAG", "File: " + textFile);
 
             // the URL where the file will be posted
-            String postReceiverUrl = "http://192.168.2.11/zahil/android_upload.php";
+            String postReceiverUrl = "http://10.22.13.194/upload.php";
             Log.v("TAG", "postURL: " + postReceiverUrl);
 
             // new HttpClient
