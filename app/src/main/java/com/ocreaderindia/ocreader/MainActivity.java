@@ -2,6 +2,7 @@ package com.ocreaderindia.ocreader;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.database.Cursor;
@@ -32,9 +33,17 @@ import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.FileBody;
+
+import java.io.DataOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -53,22 +62,24 @@ public class MainActivity extends ActionBarActivity {
         final Button button = (Button) findViewById(R.id.button);
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                Log.i("up","created");
+                Log.i("up", "created");
                 selectImage();
             }
         });
     }
+
     private String selectedImagePath = "";
     final private int PICK_IMAGE = 1;
     final private int CAPTURE_IMAGE = 2;
     private String imgPath;
+    public String SERVERURL = "http://192.168.2.7/zahil/";
 
     private void selectImage() {
 
         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
 // builder.setTitle("Choose Image Source");
-        builder.setItems(new CharSequence[] { "Take a Photo",
-                        "Choose from Gallery" },
+        builder.setItems(new CharSequence[]{"Take a Photo",
+                        "Choose from Gallery"},
                 new DialogInterface.OnClickListener() {
 
                     @Override
@@ -96,43 +107,50 @@ public class MainActivity extends ActionBarActivity {
                     }
                 });
         builder.show();
+
+        //** Send image and offload image processing task  to server by starting async task **
+        ServerTask task = new ServerTask();
+//        Log.i("TAGpath", imgPath);
+        task.execute( Environment.getExternalStorageDirectory().toString() +imgPath);
+
     }
 
 
     public Uri setImageUri() {
 
-        File file = new File(Environment.getExternalStorageDirectory(), "image" + new     Date().getTime() + ".png");
+        File file = new File(Environment.getExternalStorageDirectory(), "image" + new Date().getTime() + ".png");
         Uri imgUri = Uri.fromFile(file);
         this.imgPath = file.getAbsolutePath();
         return imgUri;
+
     }
 
 
     public String getImagePath() {
         return imgPath;
     }
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        ImageView imageView = (ImageView)findViewById(R.id.imageView);
-        if (resultCode != Activity.RESULT_CANCELED) {
-            if (requestCode == PICK_IMAGE) {
-                selectedImagePath = getAbsolutePath(data.getData());
-                System.out.println("path" + selectedImagePath);
-                imageView.setImageBitmap(decodeFile(selectedImagePath));
-                new PostDataAsyncTask().execute(selectedImagePath);
 
-            } else if (requestCode == CAPTURE_IMAGE) {
-                selectedImagePath = getImagePath();
-                System.out.println("path" + selectedImagePath);
-                imageView.setImageBitmap(decodeFile(selectedImagePath));
-                new PostDataAsyncTask().execute(selectedImagePath);
-
-
-            } else {
-                super.onActivityResult(requestCode, resultCode, data);
-            }
-        }
-    }
+//    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+//        ImageView imageView = (ImageView) findViewById(R.id.imageView);
+//        if (resultCode != Activity.RESULT_CANCELED) {
+//            if (requestCode == PICK_IMAGE) {
+//                selectedImagePath = getAbsolutePath(data.getData());
+//                System.out.println("path" + selectedImagePath);
+//                imageView.setImageBitmap(decodeFile(selectedImagePath));
+//                new PostDataAsyncTask().execute(selectedImagePath);
+//
+//            } else if (requestCode == CAPTURE_IMAGE) {
+//                selectedImagePath = getImagePath();
+//                System.out.println("path" + selectedImagePath);
+//                imageView.setImageBitmap(decodeFile(selectedImagePath));
+//                new PostDataAsyncTask().execute(selectedImagePath);
+//
+//
+//            } else {
+//                super.onActivityResult(requestCode, resultCode, data);
+//            }
+//        }
+//    }
 
 
     public Bitmap decodeFile(String path) {
@@ -163,7 +181,7 @@ public class MainActivity extends ActionBarActivity {
 
 
     public String getAbsolutePath(Uri uri) {
-        String[] projection = { MediaStore.MediaColumns.DATA };
+        String[] projection = {MediaStore.MediaColumns.DATA};
 
         Cursor cursor = managedQuery(uri, projection, null, null, null);
         if (cursor != null) {
@@ -174,136 +192,157 @@ public class MainActivity extends ActionBarActivity {
             return null;
     }
 
-    public class PostDataAsyncTask extends AsyncTask<String, String, String> {
 
-        protected void onPreExecute() {
-            super.onPreExecute();
-            // do stuff before posting data
+    //*******************************************************************************
+    //Push image processing task to server
+    //*******************************************************************************
 
-            Toast.makeText(MainActivity.this,"File Posted",Toast.LENGTH_LONG).show();
+    public class ServerTask extends AsyncTask<String, Integer, Void> {
+        public byte[] dataToServer;
+
+        //Task state
+        private final int UPLOADING_PHOTO_STATE = 0;
+        private final int SERVER_PROC_STATE = 1;
+
+        private ProgressDialog dialog;
+
+        //upload photo to server
+        HttpURLConnection uploadPhoto(FileInputStream fileInputStream) {
+
+            final String serverFileName = "test" + (int) Math.round(Math.random() * 1000) + ".jpg";
+            final String lineEnd = "\r\n";
+            final String twoHyphens = "--";
+            final String boundary = "*****";
+
+            try {
+                URL url = new URL(SERVERURL);
+                // Open a HTTP connection to the URL
+                final HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                // Allow Inputs
+                conn.setDoInput(true);
+                // Allow Outputs
+                conn.setDoOutput(true);
+                // Don't use a cached copy.
+                conn.setUseCaches(false);
+
+                // Use a post method.
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Connection", "Keep-Alive");
+                conn.setRequestProperty("Content-Type", "multipart/form-data;boundary=" + boundary);
+
+                DataOutputStream dos = new DataOutputStream(conn.getOutputStream());
+
+                dos.writeBytes(twoHyphens + boundary + lineEnd);
+                dos.writeBytes("Content-Disposition: form-data; name=\"uploadedfile\";filename=\"" + serverFileName + "\"" + lineEnd);
+                dos.writeBytes(lineEnd);
+
+                // create a buffer of maximum size
+                int bytesAvailable = fileInputStream.available();
+                int maxBufferSize = 1024;
+                int bufferSize = Math.min(bytesAvailable, maxBufferSize);
+                byte[] buffer = new byte[bufferSize];
+
+                // read file and write it into form...
+                int bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+
+                while (bytesRead > 0) {
+                    dos.write(buffer, 0, bufferSize);
+                    bytesAvailable = fileInputStream.available();
+                    bufferSize = Math.min(bytesAvailable, maxBufferSize);
+                    bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+                }
+
+                // send multipart form data after file data...
+                dos.writeBytes(lineEnd);
+                dos.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd);
+                publishProgress(SERVER_PROC_STATE);
+                // close streams
+                fileInputStream.close();
+                dos.flush();
+
+                return conn;
+            } catch (MalformedURLException ex) {
+                Log.e("TAG", "error: " + ex.getMessage(), ex);
+                return null;
+            } catch (IOException ioe) {
+                Log.e("TAG", "error: " + ioe.getMessage(), ioe);
+                return null;
+            }
         }
 
-        @Override
-        protected String doInBackground(String... strings) {
+        //get image result from server and display it in result view
+        void getResultImage(HttpURLConnection conn) {
+            // retrieve the response from server
+            InputStream is;
+            try {
+                is = conn.getInputStream();
+                //get result image from server
+
+                Log.e("TAGresult", "reply received");
+            } catch (IOException e) {
+                Log.e("TAG", e.toString());
+                e.printStackTrace();
+            }
+        }
+
+        //Main code for processing image algorithm on the server
+
+        void processImage(String inputImageFilePath) {
+            publishProgress(UPLOADING_PHOTO_STATE);
+            File inputFile = new File(inputImageFilePath);
             try {
 
-                // 1 = post text data, 2 = post file
-                int actionChoice = 2;
+                //create file stream for captured image file
+                FileInputStream fileInputStream = new FileInputStream(inputFile);
 
-                // post a text data
-                if(actionChoice==1){
-                    postText();
+                //upload photo
+                final HttpURLConnection conn = uploadPhoto(fileInputStream);
+
+                //get processed photo from server
+                if (conn != null) {
+                    getResultImage(conn);
                 }
-
-                // post a file
-                else{
-                    postFile(strings[0]);
-                }
-
-            } catch (NullPointerException e) {
-                e.printStackTrace();
-            } catch (Exception e) {
-                e.printStackTrace();
+                fileInputStream.close();
+            } catch (FileNotFoundException ex) {
+                Log.e("TAG", ex.toString());
+            } catch (IOException ex) {
+                Log.e("TAG", ex.toString());
             }
-            return null;
+        }
+
+        protected void onPreExecute() {
+//            this.dialog.setMessage("Photo captured");
+ //           this.dialog.show();
         }
 
         @Override
-        protected void onPostExecute(String lenghtOfFile) {
-            // do stuff after posting data
+        protected Void doInBackground(String... params) {            //background operation
+            String uploadFilePath = params[0];
+            processImage(uploadFilePath);
+        return null;
         }
-    }
 
-    // this will post our text data
-    private void postText(){
-        try{
-            // url where the data will be posted
-            String postReceiverUrl = "http://10.22.13.194/upload.php";
-            Log.v("TAG", "postURL: " + postReceiverUrl);
+//        //progress update, display dialogs
+//        @Override
+//        protected void onProgressUpdate(Integer... progress) {
+//            if (progress[0] == UPLOADING_PHOTO_STATE) {
+//                dialog.setMessage("Uploading");
+//                dialog.show();
+//            } else if (progress[0] == SERVER_PROC_STATE) {
+//                if (dialog.isShowing()) {
+//                    dialog.dismiss();
+//                }
+//                dialog.setMessage("Processing");
+//                dialog.show();
+//            }
+//        }
 
-            // HttpClient
-
-            HttpClient httpClient = new DefaultHttpClient();
-
-            // post header
-
-            HttpPost httpPost = new HttpPost(postReceiverUrl);
-
-            // add your data
-            List<NameValuePair> nameValuePairs = new ArrayList<NameValuePair>(2);
-            nameValuePairs.add(new BasicNameValuePair("firstname", "Mike"));
-            nameValuePairs.add(new BasicNameValuePair("lastname", "Dalisay"));
-            nameValuePairs.add(new BasicNameValuePair("email", "mike@testmail.com"));
-
-            httpPost.setEntity(new UrlEncodedFormEntity(nameValuePairs));
-
-            // execute HTTP post request
-            HttpResponse response = httpClient.execute(httpPost);
-            HttpEntity resEntity = response.getEntity();
-
-            if (resEntity != null) {
-
-                String responseStr = EntityUtils.toString(resEntity).trim();
-                Log.v("TAG", "Response: " +  responseStr);
-
-                // you can add an if statement here and do other actions based on the response
-            }
-
-        } catch (ClientProtocolException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    // will post our text file
-    private void postFile(String file_location){
-        try{
-
-            // the file to be posted
-            String textFile = file_location;
-            Log.v("TAG", "File: " + textFile);
-
-            // the URL where the file will be posted
-            String postReceiverUrl = "http://10.22.13.194/upload.php";
-            Log.v("TAG", "postURL: " + postReceiverUrl);
-
-            // new HttpClient
-            HttpClient httpClient = new DefaultHttpClient();
-
-            // post header
-            HttpPost httpPost = new HttpPost(postReceiverUrl);
-
-            File file = new File(textFile);
-
-
-            FileBody fileBody = new FileBody(file);
-
-            String boundary = "-------------" + System.currentTimeMillis();
-
-            httpPost.setHeader("Content-type", "multipart/form-data; boundary="+boundary);
-
-
-            MultipartEntity reqEntity = new MultipartEntity(HttpMultipartMode.BROWSER_COMPATIBLE);
-            reqEntity.addPart("file", fileBody);
-            httpPost.setEntity(reqEntity);
-
-            // execute HTTP post request
-            HttpResponse response = httpClient.execute(httpPost);
-            HttpEntity resEntity = response.getEntity();
-
-            if (resEntity != null) {
-
-                String responseStr = EntityUtils.toString(resEntity).trim();
-                Log.v("TAG", "Response: " +  responseStr);
-
-                // you can add an if statement here and do other actions based on the response
-            }
-
-        } catch (NullPointerException e) {
-            e.printStackTrace();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        @Override
+//        protected void onPostExecute(Void param) {
+//            if (dialog.isShowing()) {
+//                dialog.dismiss();
+//            }
+//        }
     }
 }
+
