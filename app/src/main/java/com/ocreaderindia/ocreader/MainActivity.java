@@ -72,7 +72,7 @@ public class MainActivity extends ActionBarActivity {
     final private int PICK_IMAGE = 1;
     final private int CAPTURE_IMAGE = 2;
     private String imgPath;
-    public String SERVERURL = "http://192.168.2.7/zahil/";
+    public String SERVERURL = "http://10.22.13.194/upload.php";
 
     private void selectImage() {
 

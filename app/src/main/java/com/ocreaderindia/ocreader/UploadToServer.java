@@ -14,7 +14,7 @@ public class UploadToServer extends AsyncTask <File, String, String> {
 
     int serverResponseCode = 0;
 
-    String upLoadServerUri = "http://10.22.29.41/zahil/UploadToServer.php";
+    String upLoadServerUri = "http://10.22.13.194/upload.php";
 
     @Override
     protected String doInBackground(File... arg) {
